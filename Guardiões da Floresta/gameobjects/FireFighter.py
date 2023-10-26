@@ -7,24 +7,24 @@ class FireFighter:
         self.name = name
         self.x = x
         self.y = y
-        self.speed = 5
+        self.speed = 3
         self.direction = "front"
         
         if self.name == "Pascal":
             self.images = {
-                "front": pygame.image.load("Images/PascalFront.png"),
-                "back": pygame.image.load("Images/PascalBack.png"),
-                "left": pygame.image.load("Images/PascalLeft.png"),
-                "right": pygame.image.load("Images/PascalRight.png")
+                "front": pygame.image.load("images/PascalFront.png"),
+                "back": pygame.image.load("images/PascalBack.png"),
+                "left": pygame.image.load("images/PascalLeft.png"),
+                "right": pygame.image.load("images/PascalRight.png")
             }
             self.walk_keys = (pygame.K_w, pygame.K_s, pygame.K_a, pygame.K_d)
 
         elif self.name == "Ruby":
             self.images = {
-                "front": pygame.image.load("Images/RubyFront.png"),
-                "back": pygame.image.load("Images/RubyBack.png"),
-                "left": pygame.image.load("Images/RubyLeft.png"),
-                "right": pygame.image.load("Images/RubyRight.png")
+                "front": pygame.image.load("images/RubyFront.png"),
+                "back": pygame.image.load("images/RubyBack.png"),
+                "left": pygame.image.load("images/RubyLeft.png"),
+                "right": pygame.image.load("images/RubyRight.png")
             }
             self.walk_keys = (pygame.K_UP, pygame.K_DOWN, pygame.K_LEFT, pygame.K_RIGHT)
 

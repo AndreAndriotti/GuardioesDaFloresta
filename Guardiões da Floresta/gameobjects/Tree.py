@@ -6,12 +6,18 @@ class Tree:
         self.display = display
         self.x = x
         self.y = y
+        self.state = "default"
         self.images = {
-                "default": pygame.image.load("Images/Tree.png"),
-                "on-fire": pygame.image.load("Images/TreeOnFire.png")
-    }
-
+                "default": pygame.image.load("images/Tree.png"),
+                "on-fire": pygame.image.load("images/TreeOnFire.png")
+        }
 
     def Draw(self):
-        image = self.images["default"]
+        image = self.images[self.state]
         self.display.blit(image, (self.x, self.y))
+    
+    def SetFire(self):
+        self.state = "on-fire"
+    
+    def PutOutFire(self):
+        self.state = "default"
