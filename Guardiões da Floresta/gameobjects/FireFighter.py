@@ -2,13 +2,17 @@ import pygame
 
 class FireFighter:
 
-    def __init__(self, display, name, x, y):
+    def __init__(self, display, name, pos, size):
         self.display = display
         self.name = name
-        self.x = x
-        self.y = y
-        self.speed = 3
+        self.x = pos[0]
+        self.y = pos[1]
+        self.width = size[0]
+        self.length = size[1]
+        self.speed = 4
         self.direction = "front"
+        self.nearby_objects = []
+        self.isInteracting = False
         
         if self.name == "Pascal":
             self.images = {
@@ -47,3 +51,5 @@ class FireFighter:
             self.direction = "right"
             self.x += self.speed
 
+    def PutOutFire(self, tree):
+        tree.PutOutFire()
