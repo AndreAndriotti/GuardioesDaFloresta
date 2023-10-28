@@ -13,7 +13,6 @@ class Cooldown:
             return False
 
     def Reset(self):
-        if self.IsReady():
-            self.last_used_time = time.time()
+        self.last_used_time = time.time()
 
 
