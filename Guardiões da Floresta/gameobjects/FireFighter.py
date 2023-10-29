@@ -1,5 +1,6 @@
 import pygame
 from gameobjects.Cooldown import Cooldown
+from gameobjects.Monkey import Monkey
 
 class FireFighter:
 
@@ -15,10 +16,12 @@ class FireFighter:
         self.direction = "front"
         self.nearby_objects = []
         self.is_interacting = False
-        self.put_out_fire_cooldown = Cooldown(1)
-        
+        self.put_out_fire_cooldown = Cooldown(1.5)
+        self.rescue_monkey_cooldown = Cooldown(1)
+        self.monkey = Monkey(display, self)
+
         if self.name == "Pascal":
-            self.dafault_images = {
+            self.default_images = {
                 "front": pygame.image.load("images/Pascal/Default/PascalFront.png"),
                 "back": pygame.image.load("images/Pascal/Default/PascalBack.png"),
                 "left": pygame.image.load("images/Pascal/Default/PascalLeft.png"),
@@ -33,7 +36,7 @@ class FireFighter:
             self.walk_keys = (pygame.K_w, pygame.K_s, pygame.K_a, pygame.K_d)
 
         elif self.name == "Ruby":
-            self.dafault_images = {
+            self.default_images = {
                 "front": pygame.image.load("images/Ruby/Default/RubyFront.png"),
                 "back": pygame.image.load("images/Ruby/Default/RubyBack.png"),
                 "left": pygame.image.load("images/Ruby/Default/RubyLeft.png"),
@@ -75,8 +78,12 @@ class FireFighter:
         if self.is_interacting:
             if self.state == "put-out-fire":
                 image = self.put_out_fire_images[self.direction]
+            elif self.state == "rescue-monkey":
+                image = self.default_images[self.direction]
         else:
-            image = self.dafault_images[self.direction]
+            if self.state == "with-monkey":
+                self.monkey.Draw(-17,20)
+            image = self.default_images[self.direction]
         
         self.display.blit(image, (self.x, self.y))
 
@@ -106,3 +113,17 @@ class FireFighter:
         self.FixSpritePosition()
         self.state = "default"
         tree.PutOutFire()
+    
+    def StartRescueMonkey(self):
+        self.is_interacting = True
+        self.state = "rescue-monkey"
+        self.rescue_monkey_cooldown.Reset()
+    
+    def RescueMonkey(self, tree):
+        self.is_interacting = False
+        self.state = "with-monkey"
+        tree.RemoveMonkey()
+    
+    def DeliverMonkey(self):
+        self.state = "default"
+
