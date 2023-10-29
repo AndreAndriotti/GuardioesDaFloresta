@@ -48,22 +48,37 @@ class FireFighter:
             self.walk_keys = (pygame.K_UP, pygame.K_DOWN, pygame.K_LEFT, pygame.K_RIGHT)
 
 
+    def FixSpritePosition(self):
+        x = 0
+        y = 0
+        if self.state == "put-out-fire":
+            if self.direction == "back":
+                if self.is_interacting:
+                    y = -13
+                else:
+                    y = 13
+            elif self.direction == "front":
+                if self.is_interacting:
+                    x = -8
+                else:
+                    x = 8
+            elif self.direction == "left":
+                if self.is_interacting:
+                    x = -36
+                else:
+                    x = 36
+
+        self.x += x
+        self.y += y
+
     def Draw(self):
         if self.is_interacting:
             if self.state == "put-out-fire":
                 image = self.put_out_fire_images[self.direction]
-                if self.direction == "back":
-                    self.display.blit(image, (self.x, self.y))
-                elif self.direction == "front":
-                    self.display.blit(image, (self.x, self.y))
-                elif self.direction == "left":
-                    self.display.blit(image, (self.x, self.y))
-                elif self.direction == "right":
-                    self.display.blit(image, (self.x, self.y))
-
         else:
             image = self.dafault_images[self.direction]
-            self.display.blit(image, (self.x, self.y))
+        
+        self.display.blit(image, (self.x, self.y))
 
     def Walk(self, key):
         if not self.is_interacting:
@@ -83,9 +98,11 @@ class FireFighter:
     def StartPutOutFire(self):
         self.is_interacting = True
         self.state = "put-out-fire"
+        self.FixSpritePosition()
         self.put_out_fire_cooldown.Reset()
 
     def PutOutFire(self, tree):
         self.is_interacting = False
+        self.FixSpritePosition()
         self.state = "default"
         tree.PutOutFire()

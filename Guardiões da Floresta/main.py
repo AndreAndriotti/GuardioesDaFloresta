@@ -77,9 +77,13 @@ def HandleEvents(keys_pressed, pascal, ruby, trees_default_qtt):
 
             if key_released == pygame.K_SPACE:
                 pascal.is_interacting = False
+                pascal.FixSpritePosition()
+                pascal.state = "default"
 
             if key_released == pygame.K_RETURN:
                 ruby.is_interacting = False
+                ruby.FixSpritePosition()
+                ruby.state = "default"
         
     if pygame.K_SPACE in keys_pressed:
             trees_default_qtt = FireFighterInteractions(pascal, trees_default_qtt)
@@ -154,10 +158,10 @@ def main():
     pascal, ruby, forest = CreateObjects(display, trees_qtt)
 
     while True:
-        
+        print(pascal.state)
         trees_default_qtt = HandleEvents(keys_pressed, pascal, ruby, trees_default_qtt)
         MoveFireFighters(keys_pressed, pascal, ruby)
-        CheckTreesDistances(pascal, forest)
+        CheckTreesDistances(pascal, forest) 
         CheckTreesDistances(ruby, forest)
         trees_default_qtt = SetFireOnTree(forest, fire_cooldown, trees_qtt, trees_default_qtt)
         CharTrees(forest)
