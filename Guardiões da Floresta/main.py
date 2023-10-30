@@ -6,6 +6,7 @@ from math import sqrt
 from gameobjects.Shelter import Shelter
 from gameobjects.FireFighter import FireFighter
 from gameobjects.Tree import Tree
+from gameobjects.Civilian import Civilian
 from gameobjects.Cooldown import Cooldown
 
 WIDTH = 1280
@@ -26,8 +27,10 @@ def Start():
     fire_cooldown = Cooldown(7)
     monkeys_qtt = 0
     monkey_cooldown = Cooldown(10)
+    civilians = []
+    civilian_cooldown = Cooldown(5)
     
-    return display, clock, keys_pressed, trees_qtt, trees_default_qtt, fire_cooldown, monkeys_qtt, monkey_cooldown
+    return display, clock, keys_pressed, trees_qtt, trees_default_qtt, fire_cooldown, monkeys_qtt, monkey_cooldown, civilians, civilian_cooldown
 
 def CreateObjects(display, trees_qtt):
     shelter_size = (325,227)
@@ -46,34 +49,53 @@ def CreateObjects(display, trees_qtt):
     return shelter, pascal, ruby, forest
 
 def FireFighterInteractions(firefighter, trees_default_qtt, monkeys_qtt):
+    if len(firefighter.nearby_civilians) > 0:
+        civilian = firefighter.nearby_civilians[0]
+    else:
+        civilian = None
+
     if len(firefighter.nearby_objects) > 0:
         object = firefighter.nearby_objects[0]
-    
-        if firefighter.is_interacting:
-            if firefighter.state == "put-out-fire": 
-                if firefighter.put_out_fire_cooldown.IsReady():
-                    if object.state == "on-fire" or object.state == "on-fire-with-monkey":
-                        firefighter.PutOutFire(object)
-                        trees_default_qtt += 1
+    else:
+        object = None
+        
+    if firefighter.is_interacting:
+        if firefighter.state == "rescue-civilian":
+            if firefighter.rescue_civilian_cooldown.IsReady():
+                if civilian != None:
+                    if civilian.state == "walk":
+                        firefighter.RescueCivilian(civilian)
 
-            if firefighter.state == "rescue-monkey":
-                if firefighter.rescue_monkey_cooldown.IsReady():
-                    if object.state == "with-monkey":
-                        firefighter.RescueMonkey(object)
-                        monkeys_qtt -= 1
+        elif firefighter.state == "put-out-fire":
+            if firefighter.put_out_fire_cooldown.IsReady():
+                if object.state == "on-fire" or object.state == "on-fire-with-monkey":
+                    firefighter.PutOutFire(object)
+                    trees_default_qtt += 1
 
-        else:  
-            if object.name == "tree":
-                if firefighter.state != "with-monkey":
-                    if object.state == "on-fire" or object.state == "on-fire-with-monkey":
-                        firefighter.StartPutOutFire()
+        elif firefighter.state == "rescue-monkey":
+            if firefighter.rescue_monkey_cooldown.IsReady():
+                if object.state == "with-monkey":
+                    firefighter.RescueMonkey(object)
+                    monkeys_qtt -= 1
 
-                    elif object.state == "with-monkey":
-                        firefighter.StartRescueMonkey()
-            
-            elif object.name == "shelter":
-                if firefighter.state == "with-monkey":
-                    firefighter.DeliverMonkey()
+    else:
+        if civilian == None:
+            if object != None:
+                if object.name == "tree":
+                    if firefighter.state != "with-monkey":
+                        if object.state == "on-fire" or object.state == "on-fire-with-monkey":
+                            firefighter.StartPutOutFire()
+
+                        elif object.state == "with-monkey":
+                            firefighter.StartRescueMonkey()
+
+                elif object.name == "shelter":
+                    if firefighter.state == "with-monkey":
+                        firefighter.DeliverMonkey()
+
+        else:
+            if firefighter.state != "with-monkey":
+                firefighter.StartRescueCivilian()
     
     return trees_default_qtt, monkeys_qtt
 
@@ -89,7 +111,7 @@ def HandleEvents(keys_pressed, pascal, ruby, trees_default_qtt, monkeys_qtt):
 
             if key_pressed == pygame.K_ESCAPE:
                 pygame.quit()
-                exit()  
+                exit()
 
         if event.type == pygame.KEYUP:
             key_released = event.key
@@ -127,10 +149,12 @@ def MoveFireFighters(keys_pressed, pascal, ruby):
         for key in keys_pressed:
             ruby.Walk(key)
 
-def DrawObjects(shelter, ruby, pascal, forest):
+def DrawObjects(shelter, ruby, pascal, civilians, forest):
     shelter.Draw()
     ruby.Draw()
     pascal.Draw()
+    for civilian in civilians:
+        civilian.Draw(civilians)
     for tree in forest:
         tree.Draw()
 
@@ -191,11 +215,26 @@ def CheckShelterDistance(firefighter, shelter):
         if shelter in firefighter.nearby_objects:
             firefighter.nearby_objects.remove(shelter)
 
-def CheckDistances(pascal, ruby, forest, shelter):
+def CheckCivilianDistance(firefighter, civilians):
+    for civilian in civilians:
+        firefighter_pivot = CalcPivot(firefighter)
+        civilian_pivot = CalcPivot(civilian)
+        distance = CalcDistance(firefighter_pivot[0], firefighter_pivot[1], civilian_pivot[0], civilian_pivot[1])
+
+        if distance <= 50:
+            if civilian not in firefighter.nearby_civilians:
+                firefighter.nearby_civilians.append(civilian)
+        else:
+            if civilian in firefighter.nearby_civilians:
+                firefighter.nearby_civilians.remove(civilian)
+
+def CheckDistances(pascal, ruby, forest, shelter, civilians):
     CheckTreesDistances(pascal, forest) 
     CheckTreesDistances(ruby, forest)
     CheckShelterDistance(pascal, shelter)
     CheckShelterDistance(ruby, shelter)
+    CheckCivilianDistance(pascal, civilians)
+    CheckCivilianDistance(ruby, civilians)
 
 def SpawnMonkey(forest, monkey_cooldown, monkeys_qtt, trees_qtt, trees_default_qtt):
     if monkey_cooldown.IsReady():
@@ -210,21 +249,44 @@ def SpawnMonkey(forest, monkey_cooldown, monkeys_qtt, trees_qtt, trees_default_q
 
     return monkeys_qtt
 
+def SpawnCivilian(civilian_cooldown, display, civilians):
+    if civilian_cooldown.IsReady():
+        sorted_direction = randint(0,1)
+        if sorted_direction == 0:
+            direction = "right"
+            x = 0
+        else:
+            direction = "left"
+            x = WIDTH
+        y = randint(0, HEIGHT-71)
+        
+        civilian_size = (35,71)
+        new_civilian = Civilian(display, (x,y), (civilian_size[0], civilian_size[1]), direction)
+        civilians.append(new_civilian)
+        civilian_cooldown.Reset()
+
+def CheckCiviliansPosition(civilians):
+    for civilian in civilians:
+        if civilian.x < -35 or civilian.x > WIDTH:
+            civilians.remove(civilian)
+
 def main():
-    display, clock, keys_pressed, trees_qtt, trees_default_qtt, fire_cooldown, monkeys_qtt, monkey_cooldown = Start()
+    display, clock, keys_pressed, trees_qtt, trees_default_qtt, fire_cooldown, monkeys_qtt, monkey_cooldown, civilians, civilian_cooldown = Start()
     shelter, pascal, ruby, forest = CreateObjects(display, trees_qtt)
 
     while True:
-        print(pascal.nearby_objects)
+        #print(ruby.state)
         trees_default_qtt, monkeys_qtt = HandleEvents(keys_pressed, pascal, ruby, trees_default_qtt, monkeys_qtt)
         MoveFireFighters(keys_pressed, pascal, ruby)
-        CheckDistances(pascal, ruby, forest, shelter)
+        CheckDistances(pascal, ruby, forest, shelter, civilians)
         trees_default_qtt = SetFireOnTree(forest, fire_cooldown, trees_qtt, trees_default_qtt)
         monkeys_qtt = SpawnMonkey(forest, monkey_cooldown, monkeys_qtt, trees_qtt, trees_default_qtt)
         monkeys_qtt = CharTrees(forest, monkeys_qtt)
+        SpawnCivilian(civilian_cooldown, display, civilians)
+        CheckCiviliansPosition(civilians)
 
         display.fill(GREEN)
-        DrawObjects(shelter, ruby, pascal, forest)
+        DrawObjects(shelter, ruby, pascal, civilians, forest)
 
         clock.tick(60)
         pygame.display.update()

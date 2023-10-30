@@ -15,9 +15,11 @@ class FireFighter:
         self.state = "default"
         self.direction = "front"
         self.nearby_objects = []
+        self.nearby_civilians = []
         self.is_interacting = False
         self.put_out_fire_cooldown = Cooldown(1.5)
         self.rescue_monkey_cooldown = Cooldown(1)
+        self.rescue_civilian_cooldown = Cooldown(0.5)
         self.monkey = Monkey(display, self)
 
         if self.name == "Pascal":
@@ -78,7 +80,7 @@ class FireFighter:
         if self.is_interacting:
             if self.state == "put-out-fire":
                 image = self.put_out_fire_images[self.direction]
-            elif self.state == "rescue-monkey":
+            elif self.state == "rescue-monkey" or self.state == "rescue-civilian":
                 image = self.default_images[self.direction]
         else:
             if self.state == "with-monkey":
@@ -127,3 +129,12 @@ class FireFighter:
     def DeliverMonkey(self):
         self.state = "default"
 
+    def StartRescueCivilian(self):
+        self.is_interacting = True
+        self.state = "rescue-civilian"
+        self.rescue_civilian_cooldown.Reset()
+
+    def RescueCivilian(self, civilian):
+        self.is_interacting = False
+        self.state = "default"
+        civilian.state = "rescued"
