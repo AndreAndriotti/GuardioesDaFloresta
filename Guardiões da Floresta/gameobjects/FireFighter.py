@@ -12,6 +12,7 @@ class FireFighter:
         self.width = size[0]
         self.length = size[1]
         self.speed = 4
+        self.score = 0
         self.state = "default"
         self.direction = "front"
         self.nearby_objects = []
@@ -89,20 +90,27 @@ class FireFighter:
         
         self.display.blit(image, (self.x, self.y))
 
-    def Walk(self, key):
+    def Walk(self, key, width, height):
         if not self.is_interacting:
             if key == self.walk_keys[0]:
                 self.direction = "back"
-                self.y -= self.speed
+                if self.y > self.speed:
+                    self.y -= self.speed
             elif key == self.walk_keys[1]:
                 self.direction = "front"
-                self.y += self.speed
+                if self.y < height - self.length - self.speed:
+                    self.y += self.speed
             elif key == self.walk_keys[2]:
                 self.direction = "left"
-                self.x -= self.speed
+                if self.x > self.speed:
+                    self.x -= self.speed
             elif key == self.walk_keys[3]:
                 self.direction = "right"
-                self.x += self.speed
+                if self.x < width - self.width - self.speed:
+                    self.x += self.speed
+
+    def UpdateScore(self, points):
+        self.score += points
 
     def StartPutOutFire(self):
         self.is_interacting = True
@@ -115,6 +123,7 @@ class FireFighter:
         self.FixSpritePosition()
         self.state = "default"
         tree.PutOutFire()
+        self.UpdateScore(10)
     
     def StartRescueMonkey(self):
         self.is_interacting = True
@@ -128,6 +137,7 @@ class FireFighter:
     
     def DeliverMonkey(self):
         self.state = "default"
+        self.UpdateScore(20)
 
     def StartRescueCivilian(self):
         self.is_interacting = True
@@ -138,3 +148,4 @@ class FireFighter:
         self.is_interacting = False
         self.state = "default"
         civilian.state = "rescued"
+        self.UpdateScore(30)

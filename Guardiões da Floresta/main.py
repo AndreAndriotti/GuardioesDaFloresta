@@ -11,16 +11,21 @@ from gameobjects.Cooldown import Cooldown
 
 WIDTH = 1280
 HEIGHT = 720
+
 GREEN = (0,76,8)
+WHITE = (255,255,255)
 
 TREES_POSITION = [[40,20], [320,60], [640,10], [1040,30], [190,250], 
                   [830,140], [40,410], [320,470], [740,380], [1070,300]]
+
+
 
 def Start():
     pygame.init()
     display = pygame.display.set_mode((WIDTH, HEIGHT))
     pygame.display.set_caption('Guardiões da Floresta')
     clock = pygame.time.Clock()
+    font = pygame.font.Font(None, 50)
     keys_pressed = set()
     trees_qtt = 10
     trees_default_qtt = trees_qtt
@@ -30,7 +35,7 @@ def Start():
     civilians = []
     civilian_cooldown = Cooldown(5)
     
-    return display, clock, keys_pressed, trees_qtt, trees_default_qtt, fire_cooldown, monkeys_qtt, monkey_cooldown, civilians, civilian_cooldown
+    return display, clock, font, keys_pressed, trees_qtt, trees_default_qtt, fire_cooldown, monkeys_qtt, monkey_cooldown, civilians, civilian_cooldown
 
 def CreateObjects(display, trees_qtt):
     shelter_size = (325,227)
@@ -65,6 +70,7 @@ def FireFighterInteractions(firefighter, trees_default_qtt, monkeys_qtt):
                 if civilian != None:
                     if civilian.state == "walk":
                         firefighter.RescueCivilian(civilian)
+                        firefighter.nearby_civilians.remove(civilian)
 
         elif firefighter.state == "put-out-fire":
             if firefighter.put_out_fire_cooldown.IsReady():
@@ -95,7 +101,7 @@ def FireFighterInteractions(firefighter, trees_default_qtt, monkeys_qtt):
 
         else:
             if firefighter.state != "with-monkey":
-                firefighter.StartRescueCivilian()
+                    firefighter.StartRescueCivilian()
     
     return trees_default_qtt, monkeys_qtt
 
@@ -143,11 +149,11 @@ def MoveFireFighters(keys_pressed, pascal, ruby):
 
     if isPascalMoving:
         for key in keys_pressed:
-            pascal.Walk(key)
+            pascal.Walk(key, WIDTH, HEIGHT)
 
     if isRubyMoving:
         for key in keys_pressed:
-            ruby.Walk(key)
+            ruby.Walk(key, WIDTH, HEIGHT)
 
 def DrawObjects(shelter, ruby, pascal, civilians, forest):
     shelter.Draw()
@@ -171,13 +177,16 @@ def SetFireOnTree(forest, fire_cooldown, trees_qtt, trees_default_qtt):
     
     return trees_default_qtt
 
-def CharTrees(forest, monkeys_qtt):
+def CharTrees(forest, monkeys_qtt, pascal, ruby):
     for tree in forest:
         if tree.state == "on-fire" or tree.state == "on-fire-with-monkey":
             if tree.char_cooldown.IsReady():
+                tree.Char()
                 if tree.state == "on-fire-with-monkey":
                     monkeys_qtt -= 1
-                tree.Char()
+                    UpdateGlobalScore(-30, pascal, ruby)
+                else:
+                    UpdateGlobalScore(-10, pascal, ruby)
 
     return monkeys_qtt
 
@@ -223,7 +232,8 @@ def CheckCivilianDistance(firefighter, civilians):
 
         if distance <= 50:
             if civilian not in firefighter.nearby_civilians:
-                firefighter.nearby_civilians.append(civilian)
+                if civilian.state != "rescued":
+                    firefighter.nearby_civilians.append(civilian)
         else:
             if civilian in firefighter.nearby_civilians:
                 firefighter.nearby_civilians.remove(civilian)
@@ -265,28 +275,47 @@ def SpawnCivilian(civilian_cooldown, display, civilians):
         civilians.append(new_civilian)
         civilian_cooldown.Reset()
 
-def CheckCiviliansPosition(civilians):
+def CheckCiviliansPosition(civilians, pascal, ruby):
     for civilian in civilians:
         if civilian.x < -35 or civilian.x > WIDTH:
+            if civilian in pascal.nearby_civilians:
+                pascal.nearby_civilians.remove(civilian)
+            if civilian in ruby.nearby_civilians:
+                ruby.nearby_civilians.remove(civilian)
             civilians.remove(civilian)
+            UpdateGlobalScore(-30, pascal, ruby)
+
+def UpdateGlobalScore(points, pascal, ruby):
+    pascal.score += points // 2
+    ruby.score += points // 2
+
+def ShowScore(display, pascal, ruby, font):
+    pascal_score = font.render(f"Pascal: {pascal.score}", True, WHITE)
+    global_score = font.render(f"{pascal.score + ruby.score}", True, WHITE)
+    ruby_score = font.render(f"Ruby: {ruby.score}", True, WHITE)
+    
+    display.blit(pascal_score, (50, 20))
+    display.blit(global_score, ((WIDTH//2 - global_score.get_width()//2), 20))
+    display.blit(ruby_score, ((WIDTH - ruby_score.get_width()) - 50, 20))
 
 def main():
-    display, clock, keys_pressed, trees_qtt, trees_default_qtt, fire_cooldown, monkeys_qtt, monkey_cooldown, civilians, civilian_cooldown = Start()
+    display, clock, font, keys_pressed, trees_qtt, trees_default_qtt, fire_cooldown, monkeys_qtt, monkey_cooldown, civilians, civilian_cooldown = Start()
     shelter, pascal, ruby, forest = CreateObjects(display, trees_qtt)
 
     while True:
-        #print(ruby.state)
+        print(pascal.nearby_civilians)
         trees_default_qtt, monkeys_qtt = HandleEvents(keys_pressed, pascal, ruby, trees_default_qtt, monkeys_qtt)
         MoveFireFighters(keys_pressed, pascal, ruby)
         CheckDistances(pascal, ruby, forest, shelter, civilians)
         trees_default_qtt = SetFireOnTree(forest, fire_cooldown, trees_qtt, trees_default_qtt)
         monkeys_qtt = SpawnMonkey(forest, monkey_cooldown, monkeys_qtt, trees_qtt, trees_default_qtt)
-        monkeys_qtt = CharTrees(forest, monkeys_qtt)
+        monkeys_qtt = CharTrees(forest, monkeys_qtt, pascal, ruby)
         SpawnCivilian(civilian_cooldown, display, civilians)
-        CheckCiviliansPosition(civilians)
+        CheckCiviliansPosition(civilians, pascal, ruby)
 
         display.fill(GREEN)
         DrawObjects(shelter, ruby, pascal, civilians, forest)
+        ShowScore(display, pascal, ruby, font)
 
         clock.tick(60)
         pygame.display.update()
