@@ -9,12 +9,11 @@ WHITE = (255,255,255)
 BROWN = (165,68,66)
 
 def Start():
-    menu_state = "intro"
     logo = pygame.image.load("images/Logo.png")
-    button_texts = ["Jogar", "Tutorial", "Áudio"]
+    button_texts = ["Jogar", "Instruções", "Ranking", "Áudio"]
     selected_button = 0
 
-    return menu_state, logo, button_texts, selected_button
+    return logo, button_texts, selected_button
 
 def HandleEvents(menu_state, button_texts, selected_button):
     for event in pygame.event.get():
@@ -25,28 +24,30 @@ def HandleEvents(menu_state, button_texts, selected_button):
         if event.type == pygame.KEYDOWN:
             key_pressed = event.key
 
-            if key_pressed == pygame.K_ESCAPE:
-                pygame.quit()
-                exit()
             
-            if menu_state == "intro":
+            
+            if menu_state == "intro-menu":
                 if key_pressed == pygame.K_SPACE or key_pressed == pygame.K_RETURN:
                     menu_state = "main-menu"
 
             elif menu_state == "main-menu":
-                if key_pressed == pygame.K_a or key_pressed == pygame.K_LEFT:
+                if key_pressed == pygame.K_ESCAPE:
+                    menu_state = "intro-menu"
+
+                elif key_pressed == pygame.K_a or key_pressed == pygame.K_LEFT:
                     selected_button = (selected_button - 1) % len(button_texts)
                 elif key_pressed == pygame.K_d or key_pressed == pygame.K_RIGHT:
                     selected_button = (selected_button + 1) % len(button_texts)
+                
                 elif key_pressed == pygame.K_SPACE or key_pressed == pygame.K_RETURN:
-                    # Implemente a ação desejada para cada botão aqui
                     if selected_button == 0:
                         menu_state = "play"
                     elif selected_button == 1:
-                        print("Você pressionou o botão 'Tutorial'")
+                        print("Você pressionou o botão 'Instruções'")
                     elif selected_button == 2:
-                        print("Você pressionou o botão 'Música'")
-
+                        menu_state = "ranking"
+                    elif selected_button == 3:
+                        print("Você pressionou o botão 'Áudio'")
 
     return menu_state, selected_button
 
@@ -73,9 +74,9 @@ def DrawButtons(display, font, button_texts, selected_button):
         display.blit(text_surface, text_rect)
 
 
-def Menu(display, clock, font):
+def Menu(display, clock, font, menu_state):
     
-    menu_state, logo, button_texts, selected_button = Start()
+    logo, button_texts, selected_button = Start()
 
     while True:
         #print(menu_state)
@@ -83,14 +84,15 @@ def Menu(display, clock, font):
         
         display.fill(GREEN)
         DrawLogo(display, logo)
-        if menu_state == "intro":
+
+        if menu_state == "intro-menu":
             ShowIntroText(display, font)
         elif menu_state == "main-menu":    
             DrawButtons(display, font, button_texts, selected_button)
         elif menu_state == "play":
-            break
+            return "gameplay"
+        elif menu_state == "ranking":
+            return "ranking"
 
         clock.tick(60)
         pygame.display.update()
-    
-    return "gameplay"

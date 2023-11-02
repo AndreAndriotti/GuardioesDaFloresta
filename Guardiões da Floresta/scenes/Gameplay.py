@@ -19,14 +19,6 @@ WHITE = (255,255,255)
 TREES_POSITION = [[40,20], [320,60], [640,10], [1040,30], [190,250], 
                   [830,140], [40,410], [320,470], [740,380], [1070,300]]
 
-game_state = "menu"
-
-pygame.init()
-display = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption('Guardiões da Floresta')
-clock = pygame.time.Clock()
-font = pygame.font.Font(None, 50)
-
 def Start():
     
     keys_pressed = set()
@@ -118,10 +110,6 @@ def HandleEvents(keys_pressed, pascal, ruby, trees_default_qtt, monkeys_qtt):
             key_pressed = event.key
             keys_pressed.add(key_pressed)
 
-            if key_pressed == pygame.K_ESCAPE:
-                pygame.quit()
-                exit()
-
         if event.type == pygame.KEYUP:
             key_released = event.key
             keys_pressed.discard(key_released)
@@ -187,9 +175,9 @@ def CharTrees(forest, monkeys_qtt, pascal, ruby):
                 tree.Char()
                 if tree.state == "on-fire-with-monkey":
                     monkeys_qtt -= 1
-                    UpdateGlobalScore(-30, pascal, ruby)
+                    UpdateTotalScore(-30, pascal, ruby)
                 else:
-                    UpdateGlobalScore(-10, pascal, ruby)
+                    UpdateTotalScore(-10, pascal, ruby)
 
     return monkeys_qtt
 
@@ -286,23 +274,23 @@ def CheckCiviliansPosition(civilians, pascal, ruby):
             if civilian in ruby.nearby_civilians:
                 ruby.nearby_civilians.remove(civilian)
             civilians.remove(civilian)
-            UpdateGlobalScore(-30, pascal, ruby)
+            UpdateTotalScore(-30, pascal, ruby)
 
-def UpdateGlobalScore(points, pascal, ruby):
+def UpdateTotalScore(points, pascal, ruby):
     pascal.score += points // 2
     ruby.score += points // 2
 
 def ShowScore(display, pascal, ruby, font):
     pascal_score = font.render(f"Pascal: {pascal.score}", True, WHITE)
-    global_score = font.render(f"{pascal.score + ruby.score}", True, WHITE)
+    total_score = font.render(f"{pascal.score + ruby.score}", True, WHITE)
     ruby_score = font.render(f"Ruby: {ruby.score}", True, WHITE)
     
     display.blit(pascal_score, (50, 20))
-    display.blit(global_score, ((WIDTH//2 - global_score.get_width()//2), 20))
+    display.blit(total_score, ((WIDTH//2 - total_score.get_width()//2), 20))
     display.blit(ruby_score, ((WIDTH - ruby_score.get_width()) - 50, 20))
 
 
-def Gameplay():
+def Gameplay(display, clock, font):
     keys_pressed, trees_qtt, trees_default_qtt, fire_cooldown, monkeys_qtt, monkey_cooldown, civilians, civilian_cooldown = Start()
     shelter, pascal, ruby, forest = CreateObjects(display, trees_qtt)
 
@@ -323,12 +311,3 @@ def Gameplay():
 
         clock.tick(60)
         pygame.display.update()
-
-def main(game_state):
-    if game_state == "menu":
-        game_state = Menu(display, clock, font)
-    if game_state == "gameplay":
-        Gameplay()
-
-if __name__ == "__main__":
-    main(game_state)

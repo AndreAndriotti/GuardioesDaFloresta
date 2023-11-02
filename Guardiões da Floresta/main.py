@@ -1,12 +1,12 @@
 import pygame
 from scenes.Menu import Menu
 from scenes.Gameplay import Gameplay
-from gameobjects.Shelter import Shelter
+from scenes.Ranking import Ranking
 
 WIDTH = 1280
 HEIGHT = 720
 
-game_state = "menu"
+game_state = "intro-menu"
 
 pygame.init()
 display = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -15,10 +15,13 @@ clock = pygame.time.Clock()
 font = pygame.font.Font(None, 50)
 
 def main(game_state):
-    if game_state == "menu":
-        game_state = Menu(display, clock, font)
-    if game_state == "gameplay":
-        Gameplay()
+    while True:
+        if game_state == "intro-menu" or game_state == "main-menu":
+            game_state = Menu(display, clock, font, game_state)
+        elif game_state == "gameplay":
+            Gameplay(display, clock, font)
+        elif game_state == "ranking":
+            game_state = Ranking(display, clock, font)
 
 if __name__ == "__main__":
     main(game_state)
