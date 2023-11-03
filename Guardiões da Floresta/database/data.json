@@ -1,6 +1,5 @@
 {
-    "ranking": 
-    [
+    "ranking": [
         {
             "high_score": 0,
             "high_score_pascal": 0,
@@ -26,5 +25,10 @@
             "high_score_pascal": 0,
             "high_score_ruby": 0
         }
-    ]
+    ],
+    "last_score": {
+        "score": 0,
+        "score_pascal": 0,
+        "score_ruby": 0
+    }
 }

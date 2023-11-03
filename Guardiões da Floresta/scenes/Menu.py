@@ -24,8 +24,6 @@ def HandleEvents(menu_state, button_texts, selected_button):
         if event.type == pygame.KEYDOWN:
             key_pressed = event.key
 
-            
-            
             if menu_state == "intro-menu":
                 if key_pressed == pygame.K_SPACE or key_pressed == pygame.K_RETURN:
                     menu_state = "main-menu"
@@ -79,7 +77,6 @@ def Menu(display, clock, font, menu_state):
     logo, button_texts, selected_button = Start()
 
     while True:
-        #print(menu_state)
         menu_state, selected_button = HandleEvents(menu_state, button_texts, selected_button)
         
         display.fill(GREEN)

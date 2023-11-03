@@ -10,9 +10,10 @@ WHITE = (255,255,255)
 
 def Start():
     ranking_state = "ranking"
+    ranking_base = pygame.image.load("images/UI/RankingBase.png")
     json_file_handler = JSONFileHandler("database/data.json")
 
-    return ranking_state, json_file_handler
+    return ranking_state, ranking_base, json_file_handler
 
 def HandleEvents(ranking_state):
     for event in pygame.event.get():
@@ -24,28 +25,25 @@ def HandleEvents(ranking_state):
             key_pressed = event.key
 
             if key_pressed == pygame.K_ESCAPE:
-                ranking_state = "back"
+                ranking_state = "menu"
 
     return ranking_state
 
-def DrawRect(display):
-    rect_width = 1100
-    rect_height = 400
-    x = WIDTH//2 - rect_width//2
-    y = HEIGHT//2 - rect_height//2 + 60
-    border_thickness = 10
-    pygame.draw.rect(display, WHITE, (x, y, rect_width, rect_height), border_thickness)
+def DrawBase(display, ranking_base):
+    x = WIDTH//2 - ranking_base.get_size()[0]//2
+    y = HEIGHT//2 - ranking_base.get_size()[1]//2 + 12
+    display.blit(ranking_base, (x, y))
 
 def ShowLabels(display, font):
     y = (HEIGHT//2)-100
 
-    title = font.render(f"{'-'*20}  Ranking  {'-'*20}", True, WHITE)
+    title = font.render("Ranking", True, WHITE)
     rank = font.render("Rank", True, WHITE)
     total = font.render("Total", True, WHITE)
     pascal = font.render("Pascal", True, WHITE)
     ruby = font.render("Ruby", True, WHITE)
     
-    display.blit(title, (((WIDTH//2) - title.get_width()//2), y-130))
+    display.blit(title, (((WIDTH//2) - title.get_width()//2), y-90))
     display.blit(rank, (((WIDTH//2 - 400) - rank.get_width()//2), y))
     display.blit(total, (((WIDTH//2 - 150) - total.get_width()//2), y))
     display.blit(pascal, (((WIDTH//2 + 150) - pascal.get_width()//2), y))
@@ -72,13 +70,13 @@ def ShowData(display, font, json_file_handler):
 
         y += 55
 
-def ShowRanking(display, font, json_file_handler):
-    DrawRect(display)
+def ShowRanking(display, ranking_base, font, json_file_handler):
+    DrawBase(display, ranking_base)
     ShowLabels(display, font)
     ShowData(display, font, json_file_handler)
 
 def Ranking(display, clock, font):
-    ranking_state, json_file_handler = Start()
+    ranking_state, ranking_base, json_file_handler = Start()
 
     while True:
         ranking_state = HandleEvents(ranking_state)
@@ -86,8 +84,8 @@ def Ranking(display, clock, font):
         display.fill(GREEN)
 
         if ranking_state == "ranking":
-            ShowRanking(display, font, json_file_handler)
-        elif ranking_state == "back":
+            ShowRanking(display, ranking_base, font, json_file_handler)
+        elif ranking_state == "menu":
             return "main-menu"
 
         clock.tick(60)

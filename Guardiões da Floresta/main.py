@@ -1,6 +1,7 @@
 import pygame
 from scenes.Menu import Menu
 from scenes.Gameplay import Gameplay
+from scenes.GameOver import GameOver
 from scenes.Ranking import Ranking
 
 WIDTH = 1280
@@ -16,10 +17,13 @@ font = pygame.font.Font(None, 50)
 
 def main(game_state):
     while True:
+        #print(game_state)
         if game_state == "intro-menu" or game_state == "main-menu":
             game_state = Menu(display, clock, font, game_state)
         elif game_state == "gameplay":
-            Gameplay(display, clock, font)
+            game_state = Gameplay(display, clock, font)
+        elif game_state == "game-over":
+            game_state = GameOver(display, clock, font)
         elif game_state == "ranking":
             game_state = Ranking(display, clock, font)
 

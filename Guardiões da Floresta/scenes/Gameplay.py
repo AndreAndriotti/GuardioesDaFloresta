@@ -1,14 +1,14 @@
 import pygame
 from pygame.locals import QUIT
-from sys import exit
 from random import randint
 from math import sqrt
-from scenes.Menu import Menu
 from gameobjects.Shelter import Shelter
 from gameobjects.FireFighter import FireFighter
 from gameobjects.Tree import Tree
 from gameobjects.Civilian import Civilian
 from gameobjects.Cooldown import Cooldown
+from database.JSONFileHandler import JSONFileHandler
+
 
 WIDTH = 1280
 HEIGHT = 720
@@ -20,17 +20,19 @@ TREES_POSITION = [[40,20], [320,60], [640,10], [1040,30], [190,250],
                   [830,140], [40,410], [320,470], [740,380], [1070,300]]
 
 def Start():
-    
+    gameplay_state = "gameplay"
     keys_pressed = set()
     trees_qtt = 10
+    trees_chared_qtt = 0
     trees_default_qtt = trees_qtt
     fire_cooldown = Cooldown(7)
     monkeys_qtt = 0
     monkey_cooldown = Cooldown(10)
     civilians = []
     civilian_cooldown = Cooldown(5)
+    json_file_handler = JSONFileHandler("database/data.json")
     
-    return keys_pressed, trees_qtt, trees_default_qtt, fire_cooldown, monkeys_qtt, monkey_cooldown, civilians, civilian_cooldown
+    return gameplay_state, keys_pressed, trees_qtt, trees_chared_qtt, trees_default_qtt, fire_cooldown, monkeys_qtt, monkey_cooldown, civilians, civilian_cooldown, json_file_handler
 
 def CreateObjects(display, trees_qtt):
     shelter_size = (325,227)
@@ -100,7 +102,7 @@ def FireFighterInteractions(firefighter, trees_default_qtt, monkeys_qtt):
     
     return trees_default_qtt, monkeys_qtt
 
-def HandleEvents(keys_pressed, pascal, ruby, trees_default_qtt, monkeys_qtt):
+def HandleEvents(keys_pressed, pascal, ruby, trees_default_qtt, monkeys_qtt, gameplay_state):
     for event in pygame.event.get():
         if event.type == QUIT:
             pygame.quit()
@@ -109,6 +111,9 @@ def HandleEvents(keys_pressed, pascal, ruby, trees_default_qtt, monkeys_qtt):
         if event.type == pygame.KEYDOWN:
             key_pressed = event.key
             keys_pressed.add(key_pressed)
+
+            if key_pressed == pygame.K_ESCAPE:
+                gameplay_state = "menu"
 
         if event.type == pygame.KEYUP:
             key_released = event.key
@@ -132,7 +137,7 @@ def HandleEvents(keys_pressed, pascal, ruby, trees_default_qtt, monkeys_qtt):
     if pygame.K_RETURN in keys_pressed:
             trees_default_qtt, monkeys_qtt = FireFighterInteractions(ruby, trees_default_qtt, monkeys_qtt)
     
-    return trees_default_qtt, monkeys_qtt
+    return trees_default_qtt, monkeys_qtt, gameplay_state
 
 def MoveFireFighters(keys_pressed, pascal, ruby):
     isPascalMoving = any(key in keys_pressed for key in pascal.walk_keys)
@@ -168,18 +173,19 @@ def SetFireOnTree(forest, fire_cooldown, trees_qtt, trees_default_qtt):
     
     return trees_default_qtt
 
-def CharTrees(forest, monkeys_qtt, pascal, ruby):
+def CharTrees(forest, monkeys_qtt, pascal, ruby, trees_chared_qtt):
     for tree in forest:
         if tree.state == "on-fire" or tree.state == "on-fire-with-monkey":
             if tree.char_cooldown.IsReady():
                 tree.Char()
+                trees_chared_qtt += 1
                 if tree.state == "on-fire-with-monkey":
                     monkeys_qtt -= 1
                     UpdateTotalScore(-30, pascal, ruby)
                 else:
                     UpdateTotalScore(-10, pascal, ruby)
 
-    return monkeys_qtt
+    return monkeys_qtt, trees_chared_qtt
 
 def CalcDistance(x1, y1, x2, y2):
     return sqrt((x1 - x2)**2 + (y1 - y2)**2)
@@ -289,19 +295,41 @@ def ShowScore(display, pascal, ruby, font):
     display.blit(total_score, ((WIDTH//2 - total_score.get_width()//2), 20))
     display.blit(ruby_score, ((WIDTH - ruby_score.get_width()) - 50, 20))
 
+def RegisterScore(pascal, ruby, json_file_handler):
+    last_score_data = {
+        "score": pascal.score + ruby.score,
+        "score_pascal": pascal.score,
+        "score_ruby": ruby.score
+    }
+    json_file_handler.set("last_score", last_score_data)
+
+def IsGameOver(trees_chared_qtt, trees_qtt, gameplay_state):
+    if trees_chared_qtt >= trees_qtt:
+        gameplay_state = "game-over"
+    return gameplay_state
+
+def EndGame(pascal, ruby, json_file_handler):
+    RegisterScore(pascal, ruby, json_file_handler)
+    pygame.time.delay(2000)
 
 def Gameplay(display, clock, font):
-    keys_pressed, trees_qtt, trees_default_qtt, fire_cooldown, monkeys_qtt, monkey_cooldown, civilians, civilian_cooldown = Start()
+    gameplay_state, keys_pressed, trees_qtt, trees_chared_qtt, trees_default_qtt, fire_cooldown, monkeys_qtt, monkey_cooldown, civilians, civilian_cooldown, json_file_handler = Start()
     shelter, pascal, ruby, forest = CreateObjects(display, trees_qtt)
 
     while True:
-        #print(pascal.nearby_civilians)
-        trees_default_qtt, monkeys_qtt = HandleEvents(keys_pressed, pascal, ruby, trees_default_qtt, monkeys_qtt)
+        gameplay_state = IsGameOver(trees_chared_qtt, trees_qtt, gameplay_state)
+        if gameplay_state == "game-over":
+            EndGame(pascal, ruby, json_file_handler)
+            return "game-over"
+        elif gameplay_state == "menu":
+            return "main-menu"
+        
+        trees_default_qtt, monkeys_qtt, gameplay_state = HandleEvents(keys_pressed, pascal, ruby, trees_default_qtt, monkeys_qtt, gameplay_state)
         MoveFireFighters(keys_pressed, pascal, ruby)
         CheckDistances(pascal, ruby, forest, shelter, civilians)
         trees_default_qtt = SetFireOnTree(forest, fire_cooldown, trees_qtt, trees_default_qtt)
         monkeys_qtt = SpawnMonkey(forest, monkey_cooldown, monkeys_qtt, trees_qtt, trees_default_qtt)
-        monkeys_qtt = CharTrees(forest, monkeys_qtt, pascal, ruby)
+        monkeys_qtt, trees_chared_qtt = CharTrees(forest, monkeys_qtt, pascal, ruby, trees_chared_qtt)
         SpawnCivilian(civilian_cooldown, display, civilians)
         CheckCiviliansPosition(civilians, pascal, ruby)
 
