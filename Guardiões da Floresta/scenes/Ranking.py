@@ -13,12 +13,12 @@ def Start(volume):
     ranking_base = pygame.image.load("images/UI/RankingBase.png")
     back_button = pygame.image.load("images/UI/BackButton.png")
     json_file_handler = JSONFileHandler("database/data.json")
-    click_button_audio = pygame.mixer.Sound("audios/SFX/UI/ClickButton.mp3")
-    click_button_audio.set_volume(volume)
+    return_button_audio = pygame.mixer.Sound("audios/SFX/UI/ReturnButton.wav")
+    return_button_audio.set_volume(volume)
 
-    return ranking_state, ranking_base, back_button, json_file_handler, click_button_audio
+    return ranking_state, ranking_base, back_button, json_file_handler, return_button_audio
 
-def HandleEvents(ranking_state, click_button_audio):
+def HandleEvents(ranking_state, return_button_audio):
     for event in pygame.event.get():
         if event.type == QUIT:
             pygame.quit()
@@ -28,7 +28,7 @@ def HandleEvents(ranking_state, click_button_audio):
             key_pressed = event.key
 
             if key_pressed == pygame.K_ESCAPE:
-                click_button_audio.play()
+                return_button_audio.play()
                 ranking_state = "menu"
 
     return ranking_state
@@ -81,10 +81,10 @@ def ShowRanking(display, ranking_base, font, back_button, json_file_handler):
     ShowData(display, font, json_file_handler)
 
 def Ranking(display, clock, font, volume):
-    ranking_state, ranking_base, back_button, json_file_handler, click_button_audio = Start(volume)
+    ranking_state, ranking_base, back_button, json_file_handler, return_button_audio = Start(volume)
 
     while True:
-        ranking_state = HandleEvents(ranking_state, click_button_audio)
+        ranking_state = HandleEvents(ranking_state, return_button_audio)
         
         display.fill(GREEN)
 

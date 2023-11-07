@@ -10,12 +10,12 @@ def Start(volume):
     instructions_state = "instructions"
     instructions_image = pygame.image.load("images/UI/Instructions.png")
     back_button = pygame.image.load("images/UI/BackButton.png")
-    click_button_audio = pygame.mixer.Sound("audios/SFX/UI/ClickButton.mp3")
-    click_button_audio.set_volume(volume)
+    return_button_audio = pygame.mixer.Sound("audios/SFX/UI/ReturnButton.wav")
+    return_button_audio.set_volume(volume)
 
-    return instructions_state, instructions_image, back_button, click_button_audio
+    return instructions_state, instructions_image, back_button, return_button_audio
 
-def HandleEvents(instructions_state, click_button_audio):
+def HandleEvents(instructions_state, return_button_audio):
     for event in pygame.event.get():
         if event.type == QUIT:
             pygame.quit()
@@ -25,7 +25,7 @@ def HandleEvents(instructions_state, click_button_audio):
             key_pressed = event.key
 
             if key_pressed == pygame.K_ESCAPE:
-                click_button_audio.play()
+                return_button_audio.play()
                 instructions_state = "menu"
 
     return instructions_state
@@ -35,10 +35,10 @@ def ShowInstructions(display, instructions_image, back_button):
     display.blit(instructions_image, (15,25))
 
 def Instructions(display, clock, volume):
-    instructions_state, instructions_image, back_button, click_button_audio = Start(volume)
+    instructions_state, instructions_image, back_button, return_button_audio = Start(volume)
 
     while True:
-        instructions_state = HandleEvents(instructions_state, click_button_audio)
+        instructions_state = HandleEvents(instructions_state, return_button_audio)
 
         display.fill(GREEN)
 

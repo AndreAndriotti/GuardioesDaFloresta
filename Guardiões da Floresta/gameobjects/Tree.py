@@ -14,9 +14,9 @@ class Tree:
         self.state = "default"
         self.char_cooldown = Cooldown(10)
 
-        self.fire_audio = pygame.mixer.Sound("audios/SFX/gameobjects/Fire.mp3")
-        self.fire_audio.set_volume(volume)
-        self.monkey_audio = pygame.mixer.Sound("audios/SFX/gameobjects/Monkey.mp3")
+        self.fire_audio = pygame.mixer.Sound("audios/SFX/gameobjects/Fire.wav")
+        self.fire_audio.set_volume(volume * 1.4)
+        self.monkey_audio = pygame.mixer.Sound("audios/SFX/gameobjects/Monkey.wav")
         self.monkey_audio.set_volume(volume)
 
         self.images = {

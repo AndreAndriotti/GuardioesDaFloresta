@@ -15,14 +15,15 @@ def Start(volume):
     json_file_handler = JSONFileHandler("database/data.json")
     button_texts = ["Jogar Novamente", "Voltar ao Menu"]
     selected_button = 0
-    change_button_audio = pygame.mixer.Sound("audios/SFX/UI/ChangeButton.mp3")
+    change_button_audio = pygame.mixer.Sound("audios/SFX/UI/ChangeButton.wav")
     change_button_audio.set_volume(volume)
-    click_button_audio = pygame.mixer.Sound("audios/SFX/UI/ClickButton.mp3")
+    click_button_audio = pygame.mixer.Sound("audios/SFX/UI/ClickButton.wav")
     click_button_audio.set_volume(volume)
 
     if volume > 0:
-        pygame.mixer.music.load("audios/music/GameOver.mp3")
+        pygame.mixer.music.load("audios/music/GameOver.wav")
         pygame.mixer.music.play(-1)
+        pygame.mixer.music.set_volume(volume * 0.3)
 
     return game_over_state, game_over_base, json_file_handler, button_texts, selected_button, change_button_audio, click_button_audio
 

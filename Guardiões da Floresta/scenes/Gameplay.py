@@ -25,6 +25,7 @@ TREES_POSITION = [[40,20], [320,60], [640,10], [1040,30], [190,250],
 
 def Start(volume):
     gameplay_state = "gameplay"
+    game_difficulty = ["fire"]
     keys_pressed = set()
     trees_qtt = 10
     trees_chared_qtt = 0
@@ -37,19 +38,21 @@ def Start(volume):
     civilians = []
     civilian_cooldown = Cooldown(5)
     civilian_cooldown.Reset()
-    civilian_audio = pygame.mixer.Sound("audios/SFX/gameobjects/Civilian.mp3")
-    civilian_audio.set_volume(volume)
-    lost_point_audio = pygame.mixer.Sound("audios/SFX/UI/LostPoint.mp3")
-    lost_point_audio.set_volume(volume)
-    end_game_audio = pygame.mixer.Sound("audios/SFX/UI/EndGame.mp3")
+    civilian_audio = pygame.mixer.Sound("audios/SFX/gameobjects/Civilian.wav")
+    civilian_audio.set_volume(volume * 0.5)
+    lost_point_audio = pygame.mixer.Sound("audios/SFX/UI/LostPoint.wav")
+    lost_point_audio.set_volume(volume * 1.3)
+    end_game_audio = pygame.mixer.Sound("audios/SFX/UI/EndGame.wav")
     end_game_audio.set_volume(volume)
     json_file_handler = JSONFileHandler("database/data.json")
 
     if volume > 0:
-        pygame.mixer.music.load("audios/music/Gameplay.mp3")
+        pygame.mixer.music.load("audios/music/Gameplay.wav")
         pygame.mixer.music.play(-1)
+        pygame.mixer.music.set_volume(volume * 0.3)
+
     
-    return gameplay_state, keys_pressed, trees_qtt, trees_chared_qtt, trees_default_qtt, fire_cooldown, monkeys_qtt, monkey_cooldown, civilians, civilian_cooldown, civilian_audio, lost_point_audio, end_game_audio, json_file_handler
+    return gameplay_state, game_difficulty, keys_pressed, trees_qtt, trees_chared_qtt, trees_default_qtt, fire_cooldown, monkeys_qtt, monkey_cooldown, civilians, civilian_cooldown, civilian_audio, lost_point_audio, end_game_audio, json_file_handler
 
 def CreateObjects(display, trees_qtt, volume):
     lake_size = (302,191)
@@ -94,15 +97,17 @@ def FireFighterInteractions(firefighter, trees_default_qtt, monkeys_qtt):
 
         elif firefighter.state == "put-out-fire":
             if firefighter.put_out_fire_cooldown.IsReady():
-                if object.state == "on-fire" or object.state == "on-fire-with-monkey":
-                    firefighter.PutOutFire(object)
-                    trees_default_qtt += 1
+                if object != None:
+                    if object.state == "on-fire" or object.state == "on-fire-with-monkey":
+                        firefighter.PutOutFire(object)
+                        trees_default_qtt += 1
 
         elif firefighter.state == "rescue-monkey":
             if firefighter.rescue_monkey_cooldown.IsReady():
-                if object.state == "with-monkey":
-                    firefighter.RescueMonkey(object)
-                    monkeys_qtt -= 1
+                if object != None:
+                    if object.state == "with-monkey":
+                        firefighter.RescueMonkey(object)
+                        monkeys_qtt -= 1
         
         elif firefighter.state == "refil-water-tank":
             if firefighter.refil_water_tank_cooldown.IsReady():
@@ -349,19 +354,19 @@ def ShowScore(display, pascal, ruby, font):
     total_width = total_score.get_width()
     ruby_width = ruby_score.get_width()
 
-    vertical_margin = 8
+    margin = 8
 
-    pascal_rect = pygame.Rect(50, 20 - vertical_margin, pascal_width + 10, pascal_score.get_height() + 2 * vertical_margin)
-    total_rect = pygame.Rect((WIDTH // 2 - total_width // 2) - 5, 20 - vertical_margin, total_width + 10, total_score.get_height() + 2 * vertical_margin)
-    ruby_rect = pygame.Rect(WIDTH - ruby_width - 50 - 5, 20 - vertical_margin, ruby_width + 10, ruby_score.get_height() + 2 * vertical_margin)
+    pascal_rect = pygame.Rect(50, 20 - margin, pascal_width + 2 * margin, pascal_score.get_height() + 2 * margin)
+    total_rect = pygame.Rect((WIDTH // 2 - total_width // 2) - 5, 20 - margin, total_width + 2 * margin, total_score.get_height() + 2 * margin)
+    ruby_rect = pygame.Rect(WIDTH - ruby_width - 50 - 5, 20 - margin, ruby_width + 2 * margin, ruby_score.get_height() + 2 * margin)
 
     pygame.draw.rect(display, RED, pascal_rect)
     pygame.draw.rect(display, LIGHT_GREEN, total_rect)
     pygame.draw.rect(display, YELLOW, ruby_rect)
 
-    display.blit(pascal_score, (55, 25 - vertical_margin//2))
-    display.blit(total_score, (total_rect.x + 5, 25 - vertical_margin//2))
-    display.blit(ruby_score, (ruby_rect.x + 5, 25 - vertical_margin//2))
+    display.blit(pascal_score, (50 + margin, 20))
+    display.blit(total_score, (total_rect.x + margin, 20))
+    display.blit(ruby_score, (ruby_rect.x + margin, 20))
 
 def RegisterScore(pascal, ruby, json_file_handler):
     last_score_data = {
@@ -383,8 +388,16 @@ def EndGame(pascal, ruby, volume, end_game_audio, json_file_handler):
     RegisterScore(pascal, ruby, json_file_handler)
     pygame.time.delay(2000)
 
+def SetGameDifficulty(game_difficulty, pascal, ruby):
+    score = pascal.score + ruby.score
+    if "monkey" not in game_difficulty and score >= 50:
+        game_difficulty.append("monkey")
+    elif "civilian" not in game_difficulty and score >= 150:
+        game_difficulty.append("civilian")
+    return game_difficulty
+
 def Gameplay(display, clock, font, volume):
-    gameplay_state, keys_pressed, trees_qtt, trees_chared_qtt, trees_default_qtt, fire_cooldown, monkeys_qtt, monkey_cooldown, civilians, civilian_cooldown, civilian_audio, lost_point_audio, end_game_audio, json_file_handler = Start(volume)
+    gameplay_state, game_difficulty, keys_pressed, trees_qtt, trees_chared_qtt, trees_default_qtt, fire_cooldown, monkeys_qtt, monkey_cooldown, civilians, civilian_cooldown, civilian_audio, lost_point_audio, end_game_audio, json_file_handler = Start(volume)
     lake, shelter, water_pump, pascal, ruby, forest  = CreateObjects(display, trees_qtt, volume)
 
     while True:
@@ -398,11 +411,16 @@ def Gameplay(display, clock, font, volume):
         trees_default_qtt, monkeys_qtt, gameplay_state = HandleEvents(keys_pressed, pascal, ruby, trees_default_qtt, monkeys_qtt, gameplay_state)
         MoveFireFighters(keys_pressed, pascal, ruby)
         CheckDistances(pascal, ruby, forest, shelter, water_pump, civilians)
-        trees_default_qtt = SetFireOnTree(forest, fire_cooldown, trees_qtt, trees_default_qtt)
-        monkeys_qtt = SpawnMonkey(forest, monkey_cooldown, monkeys_qtt, trees_qtt, trees_default_qtt)
-        monkeys_qtt, trees_chared_qtt = CharTrees(forest, monkeys_qtt, pascal, ruby, trees_chared_qtt, lost_point_audio)
-        SpawnCivilian(civilian_cooldown, display, civilians, civilian_audio)
-        CheckCiviliansPosition(civilians, pascal, ruby, lost_point_audio)
+
+        game_difficulty = SetGameDifficulty(game_difficulty, pascal, ruby)
+        if "fire" in game_difficulty:
+            trees_default_qtt = SetFireOnTree(forest, fire_cooldown, trees_qtt, trees_default_qtt)
+            monkeys_qtt, trees_chared_qtt = CharTrees(forest, monkeys_qtt, pascal, ruby, trees_chared_qtt, lost_point_audio)
+        if "monkey" in game_difficulty:
+            monkeys_qtt = SpawnMonkey(forest, monkey_cooldown, monkeys_qtt, trees_qtt, trees_default_qtt)
+        if "civilian" in game_difficulty:
+            SpawnCivilian(civilian_cooldown, display, civilians, civilian_audio)
+            CheckCiviliansPosition(civilians, pascal, ruby, lost_point_audio)
 
         display.fill(GREEN)
         DrawObjects(lake, shelter, water_pump, ruby, pascal, civilians, forest)

@@ -12,18 +12,22 @@ def Start(volume, is_music_playing):
     logo = pygame.image.load("images/UI/Logo.png")
     button_texts = ["Jogar", "Instruções", "Ranking", "Áudio"]
     selected_button = 0
-    change_button_audio = pygame.mixer.Sound("audios/SFX/UI/ChangeButton.mp3")
+    change_button_audio = pygame.mixer.Sound("audios/SFX/UI/ChangeButton.wav")
     change_button_audio.set_volume(volume)
-    click_button_audio = pygame.mixer.Sound("audios/SFX/UI/ClickButton.mp3")
+    click_button_audio = pygame.mixer.Sound("audios/SFX/UI/ClickButton.wav")
     click_button_audio.set_volume(volume)
+    start_game_audio = pygame.mixer.Sound("audios/SFX/UI/StartGame.wav")
+    start_game_audio.set_volume(volume)
+
     if volume > 0 and not is_music_playing:
-        pygame.mixer.music.load("audios/music/Menu.mp3")
+        pygame.mixer.music.load("audios/music/Menu.wav")
         pygame.mixer.music.play(-1)
+        pygame.mixer.music.set_volume(volume * 0.3)
         is_music_playing = True
 
-    return logo, button_texts, selected_button, change_button_audio, click_button_audio, is_music_playing
+    return logo, button_texts, selected_button, change_button_audio, click_button_audio, start_game_audio, is_music_playing
 
-def HandleEvents(menu_state, button_texts, selected_button, volume, is_music_playing, change_button_audio, click_button_audio):
+def HandleEvents(menu_state, button_texts, selected_button, volume, is_music_playing, change_button_audio, click_button_audio, start_game_audio):
     for event in pygame.event.get():
         if event.type == QUIT:
             pygame.quit()
@@ -45,18 +49,22 @@ def HandleEvents(menu_state, button_texts, selected_button, volume, is_music_pla
                     selected_button = (selected_button + 1) % len(button_texts)
                 
                 elif key_pressed == pygame.K_SPACE or key_pressed == pygame.K_RETURN:
-                    click_button_audio.play()
                     if selected_button == 0:
+                        start_game_audio.play()
                         menu_state = "play"
                     elif selected_button == 1:
+                        click_button_audio.play()
                         menu_state = "instructions"
                         if volume == 0:
+                            click_button_audio.play()
                             is_music_playing = False
                     elif selected_button == 2:
+                        click_button_audio.play()
                         menu_state = "ranking"
                         if volume == 0:
                             is_music_playing = False
                     elif selected_button == 3:
+                        click_button_audio.play()
                         volume, is_music_playing = UpdateAudio(volume, is_music_playing, change_button_audio, click_button_audio)
 
     return menu_state, selected_button, volume, is_music_playing
@@ -72,6 +80,7 @@ def UpdateAudio(volume, is_music_playing, change_button_audio, click_button_audi
         else:
             pygame.mixer.music.load("audios/music/Menu.mp3")
             pygame.mixer.music.play(-1)
+            pygame.mixer.music.set_volume(volume * 0.3)
             is_music_playing = True
 
     change_button_audio.set_volume(volume)
@@ -104,10 +113,10 @@ def DrawButtons(display, font, button_texts, selected_button):
 
 def Menu(display, clock, font, volume, is_music_playing, menu_state):
     
-    logo, button_texts, selected_button, change_button_audio, click_button_audio, is_music_playing = Start(volume, is_music_playing)
+    logo, button_texts, selected_button, change_button_audio, click_button_audio, start_game_audio, is_music_playing = Start(volume, is_music_playing)
 
     while True:
-        menu_state, selected_button, volume, is_music_playing = HandleEvents(menu_state, button_texts, selected_button, volume, is_music_playing, change_button_audio, click_button_audio)
+        menu_state, selected_button, volume, is_music_playing = HandleEvents(menu_state, button_texts, selected_button, volume, is_music_playing, change_button_audio, click_button_audio, start_game_audio)
         
         display.fill(GREEN)
         DrawLogo(display, logo)
