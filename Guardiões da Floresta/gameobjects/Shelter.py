@@ -9,7 +9,7 @@ class Shelter:
         self.y = pos[1]
         self.width = size[0]
         self.length = size[1]
-        self.image = pygame.image.load("images/Shelter.png")
+        self.image = pygame.image.load("images/gameobjects/Shelter.png")
     
     def Draw(self):
         self.display.blit(self.image, (self.x, self.y))

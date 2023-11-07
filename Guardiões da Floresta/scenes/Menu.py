@@ -8,14 +8,22 @@ GREEN = (0,76,8)
 WHITE = (255,255,255)
 BROWN = (165,68,66)
 
-def Start():
-    logo = pygame.image.load("images/Logo.png")
+def Start(volume, is_music_playing):
+    logo = pygame.image.load("images/UI/Logo.png")
     button_texts = ["Jogar", "Instruções", "Ranking", "Áudio"]
     selected_button = 0
+    change_button_audio = pygame.mixer.Sound("audios/SFX/UI/ChangeButton.mp3")
+    change_button_audio.set_volume(volume)
+    click_button_audio = pygame.mixer.Sound("audios/SFX/UI/ClickButton.mp3")
+    click_button_audio.set_volume(volume)
+    if volume > 0 and not is_music_playing:
+        pygame.mixer.music.load("audios/music/Menu.mp3")
+        pygame.mixer.music.play(-1)
+        is_music_playing = True
 
-    return logo, button_texts, selected_button
+    return logo, button_texts, selected_button, change_button_audio, click_button_audio, is_music_playing
 
-def HandleEvents(menu_state, button_texts, selected_button):
+def HandleEvents(menu_state, button_texts, selected_button, volume, is_music_playing, change_button_audio, click_button_audio):
     for event in pygame.event.get():
         if event.type == QUIT:
             pygame.quit()
@@ -29,25 +37,47 @@ def HandleEvents(menu_state, button_texts, selected_button):
                     menu_state = "main-menu"
 
             elif menu_state == "main-menu":
-                if key_pressed == pygame.K_ESCAPE:
-                    menu_state = "intro-menu"
-
-                elif key_pressed == pygame.K_a or key_pressed == pygame.K_LEFT:
+                if key_pressed == pygame.K_a or key_pressed == pygame.K_LEFT:
+                    change_button_audio.play()
                     selected_button = (selected_button - 1) % len(button_texts)
                 elif key_pressed == pygame.K_d or key_pressed == pygame.K_RIGHT:
+                    change_button_audio.play()
                     selected_button = (selected_button + 1) % len(button_texts)
                 
                 elif key_pressed == pygame.K_SPACE or key_pressed == pygame.K_RETURN:
+                    click_button_audio.play()
                     if selected_button == 0:
                         menu_state = "play"
                     elif selected_button == 1:
-                        print("Você pressionou o botão 'Instruções'")
+                        menu_state = "instructions"
+                        if volume == 0:
+                            is_music_playing = False
                     elif selected_button == 2:
                         menu_state = "ranking"
+                        if volume == 0:
+                            is_music_playing = False
                     elif selected_button == 3:
-                        print("Você pressionou o botão 'Áudio'")
+                        volume, is_music_playing = UpdateAudio(volume, is_music_playing, change_button_audio, click_button_audio)
 
-    return menu_state, selected_button
+    return menu_state, selected_button, volume, is_music_playing
+
+def UpdateAudio(volume, is_music_playing, change_button_audio, click_button_audio):
+    if volume > 0:
+        volume = 0
+        pygame.mixer.music.pause()
+    else:
+        volume = 1
+        if is_music_playing:
+            pygame.mixer.music.unpause()
+        else:
+            pygame.mixer.music.load("audios/music/Menu.mp3")
+            pygame.mixer.music.play(-1)
+            is_music_playing = True
+
+    change_button_audio.set_volume(volume)
+    click_button_audio.set_volume(volume)
+    
+    return volume, is_music_playing
 
 def DrawLogo(display, logo):
     display.blit(logo, (WIDTH//2 - logo.get_size()[0]//2, HEIGHT//2 - logo.get_size()[1]//2 - 50))
@@ -72,12 +102,12 @@ def DrawButtons(display, font, button_texts, selected_button):
         display.blit(text_surface, text_rect)
 
 
-def Menu(display, clock, font, menu_state):
+def Menu(display, clock, font, volume, is_music_playing, menu_state):
     
-    logo, button_texts, selected_button = Start()
+    logo, button_texts, selected_button, change_button_audio, click_button_audio, is_music_playing = Start(volume, is_music_playing)
 
     while True:
-        menu_state, selected_button = HandleEvents(menu_state, button_texts, selected_button)
+        menu_state, selected_button, volume, is_music_playing = HandleEvents(menu_state, button_texts, selected_button, volume, is_music_playing, change_button_audio, click_button_audio)
         
         display.fill(GREEN)
         DrawLogo(display, logo)
@@ -87,9 +117,11 @@ def Menu(display, clock, font, menu_state):
         elif menu_state == "main-menu":    
             DrawButtons(display, font, button_texts, selected_button)
         elif menu_state == "play":
-            return "gameplay"
+            return "gameplay", volume, is_music_playing
+        elif menu_state == "instructions":
+            return "instructions", volume, is_music_playing
         elif menu_state == "ranking":
-            return "ranking"
+            return "ranking", volume, is_music_playing
 
         clock.tick(60)
         pygame.display.update()

@@ -9,16 +9,24 @@ GREEN = (0,76,8)
 WHITE = (255,255,255)
 BROWN = (165,68,66)
 
-def Start():
+def Start(volume):
     game_over_state = "game-over"
     game_over_base = pygame.image.load("images/UI/GameOverBase.png")
     json_file_handler = JSONFileHandler("database/data.json")
     button_texts = ["Jogar Novamente", "Voltar ao Menu"]
     selected_button = 0
+    change_button_audio = pygame.mixer.Sound("audios/SFX/UI/ChangeButton.mp3")
+    change_button_audio.set_volume(volume)
+    click_button_audio = pygame.mixer.Sound("audios/SFX/UI/ClickButton.mp3")
+    click_button_audio.set_volume(volume)
 
-    return game_over_state, game_over_base, json_file_handler, button_texts, selected_button
+    if volume > 0:
+        pygame.mixer.music.load("audios/music/GameOver.mp3")
+        pygame.mixer.music.play(-1)
 
-def HandleEvents(game_over_state, button_texts, selected_button):
+    return game_over_state, game_over_base, json_file_handler, button_texts, selected_button, change_button_audio, click_button_audio
+
+def HandleEvents(game_over_state, button_texts, selected_button, change_button_audio, click_button_audio):
     for event in pygame.event.get():
         if event.type == QUIT:
             pygame.quit()
@@ -28,11 +36,14 @@ def HandleEvents(game_over_state, button_texts, selected_button):
             key_pressed = event.key
             
             if key_pressed == pygame.K_a or key_pressed == pygame.K_LEFT:
-                    selected_button = (selected_button - 1) % len(button_texts)
+                change_button_audio.play()
+                selected_button = (selected_button - 1) % len(button_texts)
             elif key_pressed == pygame.K_d or key_pressed == pygame.K_RIGHT:
+                change_button_audio.play()
                 selected_button = (selected_button + 1) % len(button_texts)
             
             elif key_pressed == pygame.K_SPACE or key_pressed == pygame.K_RETURN:
+                click_button_audio.play()
                 if selected_button == 0:
                     game_over_state = "play-again"
                 elif selected_button == 1:
@@ -117,12 +128,12 @@ def UpdateRankingIfHigher(json_file_handler):
     if updated:
         json_file_handler.set('ranking', ranking)
 
-def GameOver(display, clock, font):
-    game_over_state, game_over_base, json_file_handler, button_texts, selected_button = Start()
+def GameOver(display, clock, font, volume):
+    game_over_state, game_over_base, json_file_handler, button_texts, selected_button, change_button_audio, click_button_audio = Start(volume)
     UpdateRankingIfHigher(json_file_handler)
 
     while True:
-        game_over_state, selected_button = HandleEvents(game_over_state, button_texts, selected_button)
+        game_over_state, selected_button = HandleEvents(game_over_state, button_texts, selected_button, change_button_audio, click_button_audio)
         
         display.fill(GREEN)
 
@@ -130,9 +141,9 @@ def GameOver(display, clock, font):
             ShowScore(display, game_over_base, font, json_file_handler)
             DrawButtons(display, font, button_texts, selected_button)
         elif game_over_state == "play-again":
-            return "gameplay"    
+            return "gameplay", False    
         elif game_over_state == "menu":
-            return "main-menu"
+            return "main-menu", False
 
         clock.tick(60)
         pygame.display.update()

@@ -13,8 +13,8 @@ class Civilian:
         self.state = "walk"
         self.direction = direction
         self.images = {
-            "left": pygame.image.load("images/CivilianLeft.png"),
-            "right": pygame.image.load("images/CivilianRight.png")
+            "left": pygame.image.load("images/gameobjects/CivilianLeft.png"),
+            "right": pygame.image.load("images/gameobjects/CivilianRight.png")
         }
     
     def Draw(self, civilians):

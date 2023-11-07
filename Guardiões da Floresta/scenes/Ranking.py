@@ -8,14 +8,17 @@ HEIGHT = 720
 GREEN = (0,76,8)
 WHITE = (255,255,255)
 
-def Start():
+def Start(volume):
     ranking_state = "ranking"
     ranking_base = pygame.image.load("images/UI/RankingBase.png")
+    back_button = pygame.image.load("images/UI/BackButton.png")
     json_file_handler = JSONFileHandler("database/data.json")
+    click_button_audio = pygame.mixer.Sound("audios/SFX/UI/ClickButton.mp3")
+    click_button_audio.set_volume(volume)
 
-    return ranking_state, ranking_base, json_file_handler
+    return ranking_state, ranking_base, back_button, json_file_handler, click_button_audio
 
-def HandleEvents(ranking_state):
+def HandleEvents(ranking_state, click_button_audio):
     for event in pygame.event.get():
         if event.type == QUIT:
             pygame.quit()
@@ -25,6 +28,7 @@ def HandleEvents(ranking_state):
             key_pressed = event.key
 
             if key_pressed == pygame.K_ESCAPE:
+                click_button_audio.play()
                 ranking_state = "menu"
 
     return ranking_state
@@ -70,21 +74,22 @@ def ShowData(display, font, json_file_handler):
 
         y += 55
 
-def ShowRanking(display, ranking_base, font, json_file_handler):
+def ShowRanking(display, ranking_base, font, back_button, json_file_handler):
+    display.blit(back_button, (20,20))
     DrawBase(display, ranking_base)
     ShowLabels(display, font)
     ShowData(display, font, json_file_handler)
 
-def Ranking(display, clock, font):
-    ranking_state, ranking_base, json_file_handler = Start()
+def Ranking(display, clock, font, volume):
+    ranking_state, ranking_base, back_button, json_file_handler, click_button_audio = Start(volume)
 
     while True:
-        ranking_state = HandleEvents(ranking_state)
+        ranking_state = HandleEvents(ranking_state, click_button_audio)
         
         display.fill(GREEN)
 
         if ranking_state == "ranking":
-            ShowRanking(display, ranking_base, font, json_file_handler)
+            ShowRanking(display, ranking_base, font, back_button, json_file_handler)
         elif ranking_state == "menu":
             return "main-menu"
 

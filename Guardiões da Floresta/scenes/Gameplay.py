@@ -2,53 +2,76 @@ import pygame
 from pygame.locals import QUIT
 from random import randint
 from math import sqrt
+from gameobjects.Lake import Lake
 from gameobjects.Shelter import Shelter
+from gameobjects.WaterPump import WaterPump
 from gameobjects.FireFighter import FireFighter
-from gameobjects.Tree import Tree
 from gameobjects.Civilian import Civilian
+from gameobjects.Tree import Tree
 from gameobjects.Cooldown import Cooldown
 from database.JSONFileHandler import JSONFileHandler
-
 
 WIDTH = 1280
 HEIGHT = 720
 
 GREEN = (0,76,8)
 WHITE = (255,255,255)
+RED = (235,53,40)
+LIGHT_GREEN = (140,196,63)
+YELLOW = (255,207,15)
 
 TREES_POSITION = [[40,20], [320,60], [640,10], [1040,30], [190,250], 
-                  [830,140], [40,410], [320,470], [740,380], [1070,300]]
+                  [830,140], [40,410], [320,470], [740,380], [1070,250]]
 
-def Start():
+def Start(volume):
     gameplay_state = "gameplay"
     keys_pressed = set()
     trees_qtt = 10
     trees_chared_qtt = 0
     trees_default_qtt = trees_qtt
     fire_cooldown = Cooldown(7)
+    fire_cooldown.Reset()
     monkeys_qtt = 0
     monkey_cooldown = Cooldown(10)
+    monkey_cooldown.Reset()
     civilians = []
     civilian_cooldown = Cooldown(5)
+    civilian_cooldown.Reset()
+    civilian_audio = pygame.mixer.Sound("audios/SFX/gameobjects/Civilian.mp3")
+    civilian_audio.set_volume(volume)
+    lost_point_audio = pygame.mixer.Sound("audios/SFX/UI/LostPoint.mp3")
+    lost_point_audio.set_volume(volume)
+    end_game_audio = pygame.mixer.Sound("audios/SFX/UI/EndGame.mp3")
+    end_game_audio.set_volume(volume)
     json_file_handler = JSONFileHandler("database/data.json")
-    
-    return gameplay_state, keys_pressed, trees_qtt, trees_chared_qtt, trees_default_qtt, fire_cooldown, monkeys_qtt, monkey_cooldown, civilians, civilian_cooldown, json_file_handler
 
-def CreateObjects(display, trees_qtt):
+    if volume > 0:
+        pygame.mixer.music.load("audios/music/Gameplay.mp3")
+        pygame.mixer.music.play(-1)
+    
+    return gameplay_state, keys_pressed, trees_qtt, trees_chared_qtt, trees_default_qtt, fire_cooldown, monkeys_qtt, monkey_cooldown, civilians, civilian_cooldown, civilian_audio, lost_point_audio, end_game_audio, json_file_handler
+
+def CreateObjects(display, trees_qtt, volume):
+    lake_size = (302,191)
+    lake = Lake(display, ((WIDTH - lake_size[0] - 50), (HEIGHT - lake_size[1] - 20)))
+    
     shelter_size = (325,227)
     shelter = Shelter(display, ((WIDTH // 2 - shelter_size[0]//2), (HEIGHT // 2 - shelter_size[1]//2)), shelter_size) 
     
+    water_pump_size = (111,137)
+    water_pump = WaterPump(display, ((WIDTH - 235), (HEIGHT - 260)), water_pump_size)
+    
     firefighter_size = (38,66)
-    pascal = FireFighter(display, "Pascal", ((WIDTH // 2 - 40), (HEIGHT // 2 + 90)), firefighter_size)
-    ruby = FireFighter(display, "Ruby", ((WIDTH // 2 + 5), (HEIGHT // 2 + 90)), firefighter_size)
+    pascal = FireFighter(display, "Pascal", ((WIDTH // 2 - 40), (HEIGHT // 2 + 90)), firefighter_size, volume)
+    ruby = FireFighter(display, "Ruby", ((WIDTH // 2 + 5), (HEIGHT // 2 + 90)), firefighter_size, volume)
 
     tree_size = (187,243)
     forest = []
     for t in range(trees_qtt):
-        new_tree = Tree(display, (TREES_POSITION[t][0], TREES_POSITION[t][1]), tree_size)
+        new_tree = Tree(display, (TREES_POSITION[t][0], TREES_POSITION[t][1]), tree_size, volume)
         forest.append(new_tree)
 
-    return shelter, pascal, ruby, forest
+    return lake, shelter, water_pump, pascal, ruby, forest
 
 def FireFighterInteractions(firefighter, trees_default_qtt, monkeys_qtt):
     if len(firefighter.nearby_civilians) > 0:
@@ -80,6 +103,10 @@ def FireFighterInteractions(firefighter, trees_default_qtt, monkeys_qtt):
                 if object.state == "with-monkey":
                     firefighter.RescueMonkey(object)
                     monkeys_qtt -= 1
+        
+        elif firefighter.state == "refil-water-tank":
+            if firefighter.refil_water_tank_cooldown.IsReady():
+                firefighter.RefilWaterTank()
 
     else:
         if civilian == None:
@@ -87,7 +114,8 @@ def FireFighterInteractions(firefighter, trees_default_qtt, monkeys_qtt):
                 if object.name == "tree":
                     if firefighter.state != "with-monkey":
                         if object.state == "on-fire" or object.state == "on-fire-with-monkey":
-                            firefighter.StartPutOutFire()
+                            if firefighter.water_charges > 0:
+                                firefighter.StartPutOutFire()
 
                         elif object.state == "with-monkey":
                             firefighter.StartRescueMonkey()
@@ -95,6 +123,11 @@ def FireFighterInteractions(firefighter, trees_default_qtt, monkeys_qtt):
                 elif object.name == "shelter":
                     if firefighter.state == "with-monkey":
                         firefighter.DeliverMonkey()
+                
+                elif object.name == "water-pump":
+                    if firefighter.state != "with-monkey":
+                        if firefighter.water_charges <= 0:
+                            firefighter.StartRefilWaterTank()
 
         else:
             if firefighter.state != "with-monkey":
@@ -122,12 +155,14 @@ def HandleEvents(keys_pressed, pascal, ruby, trees_default_qtt, monkeys_qtt, gam
             if key_released == pygame.K_SPACE:
                 pascal.is_interacting = False
                 pascal.FixSpritePosition()
+                pascal.StopInteractionAudios()
                 if pascal.state != "with-monkey":
                     pascal.state = "default"
 
             if key_released == pygame.K_RETURN:
                 ruby.is_interacting = False
                 ruby.FixSpritePosition()
+                ruby.StopInteractionAudios()
                 if ruby.state != "with-monkey":
                     ruby.state = "default"
         
@@ -151,8 +186,10 @@ def MoveFireFighters(keys_pressed, pascal, ruby):
         for key in keys_pressed:
             ruby.Walk(key, WIDTH, HEIGHT)
 
-def DrawObjects(shelter, ruby, pascal, civilians, forest):
+def DrawObjects(lake, shelter, water_pump, ruby, pascal, civilians, forest):
+    lake.Draw()
     shelter.Draw()
+    water_pump.Draw()
     ruby.Draw()
     pascal.Draw()
     for civilian in civilians:
@@ -173,7 +210,7 @@ def SetFireOnTree(forest, fire_cooldown, trees_qtt, trees_default_qtt):
     
     return trees_default_qtt
 
-def CharTrees(forest, monkeys_qtt, pascal, ruby, trees_chared_qtt):
+def CharTrees(forest, monkeys_qtt, pascal, ruby, trees_chared_qtt, lost_point_audio):
     for tree in forest:
         if tree.state == "on-fire" or tree.state == "on-fire-with-monkey":
             if tree.char_cooldown.IsReady():
@@ -181,9 +218,9 @@ def CharTrees(forest, monkeys_qtt, pascal, ruby, trees_chared_qtt):
                 trees_chared_qtt += 1
                 if tree.state == "on-fire-with-monkey":
                     monkeys_qtt -= 1
-                    UpdateTotalScore(-30, pascal, ruby)
+                    UpdateTotalScore(-30, pascal, ruby, lost_point_audio)
                 else:
-                    UpdateTotalScore(-10, pascal, ruby)
+                    UpdateTotalScore(-10, pascal, ruby, lost_point_audio)
 
     return monkeys_qtt, trees_chared_qtt
 
@@ -221,6 +258,18 @@ def CheckShelterDistance(firefighter, shelter):
         if shelter in firefighter.nearby_objects:
             firefighter.nearby_objects.remove(shelter)
 
+def CheckWaterPumpDistance(firefighter, water_pump):
+    firefighter_pivot = CalcPivot(firefighter)
+    water_pump_pivot = CalcPivot(water_pump)
+    distance = CalcDistance(firefighter_pivot[0], firefighter_pivot[1], water_pump_pivot[0], water_pump_pivot[1])
+
+    if distance <= 50:
+        if water_pump not in firefighter.nearby_objects:
+            firefighter.nearby_objects.append(water_pump)
+    else:
+        if water_pump in firefighter.nearby_objects:
+            firefighter.nearby_objects.remove(water_pump)
+
 def CheckCivilianDistance(firefighter, civilians):
     for civilian in civilians:
         firefighter_pivot = CalcPivot(firefighter)
@@ -235,11 +284,13 @@ def CheckCivilianDistance(firefighter, civilians):
             if civilian in firefighter.nearby_civilians:
                 firefighter.nearby_civilians.remove(civilian)
 
-def CheckDistances(pascal, ruby, forest, shelter, civilians):
+def CheckDistances(pascal, ruby, forest, shelter, water_pump, civilians):
     CheckTreesDistances(pascal, forest) 
     CheckTreesDistances(ruby, forest)
     CheckShelterDistance(pascal, shelter)
     CheckShelterDistance(ruby, shelter)
+    CheckWaterPumpDistance(pascal, water_pump)
+    CheckWaterPumpDistance(ruby, water_pump)
     CheckCivilianDistance(pascal, civilians)
     CheckCivilianDistance(ruby, civilians)
 
@@ -256,7 +307,7 @@ def SpawnMonkey(forest, monkey_cooldown, monkeys_qtt, trees_qtt, trees_default_q
 
     return monkeys_qtt
 
-def SpawnCivilian(civilian_cooldown, display, civilians):
+def SpawnCivilian(civilian_cooldown, display, civilians, civilian_audio):
     if civilian_cooldown.IsReady():
         sorted_direction = randint(0,1)
         if sorted_direction == 0:
@@ -270,9 +321,10 @@ def SpawnCivilian(civilian_cooldown, display, civilians):
         civilian_size = (35,71)
         new_civilian = Civilian(display, (x,y), (civilian_size[0], civilian_size[1]), direction)
         civilians.append(new_civilian)
+        civilian_audio.play()
         civilian_cooldown.Reset()
 
-def CheckCiviliansPosition(civilians, pascal, ruby):
+def CheckCiviliansPosition(civilians, pascal, ruby, lost_point_audio):
     for civilian in civilians:
         if civilian.x < -35 or civilian.x > WIDTH:
             if civilian in pascal.nearby_civilians:
@@ -280,20 +332,36 @@ def CheckCiviliansPosition(civilians, pascal, ruby):
             if civilian in ruby.nearby_civilians:
                 ruby.nearby_civilians.remove(civilian)
             civilians.remove(civilian)
-            UpdateTotalScore(-30, pascal, ruby)
+            UpdateTotalScore(-30, pascal, ruby, lost_point_audio)
 
-def UpdateTotalScore(points, pascal, ruby):
+def UpdateTotalScore(points, pascal, ruby, lost_point_audio):
+    if points < 0:
+        lost_point_audio.play()
     pascal.score += points // 2
     ruby.score += points // 2
 
 def ShowScore(display, pascal, ruby, font):
-    pascal_score = font.render(f"Pascal: {pascal.score}", True, WHITE)
+    pascal_score = font.render(f"{pascal.score}", True, WHITE)
     total_score = font.render(f"{pascal.score + ruby.score}", True, WHITE)
-    ruby_score = font.render(f"Ruby: {ruby.score}", True, WHITE)
+    ruby_score = font.render(f"{ruby.score}", True, WHITE)
     
-    display.blit(pascal_score, (50, 20))
-    display.blit(total_score, ((WIDTH//2 - total_score.get_width()//2), 20))
-    display.blit(ruby_score, ((WIDTH - ruby_score.get_width()) - 50, 20))
+    pascal_width = pascal_score.get_width()
+    total_width = total_score.get_width()
+    ruby_width = ruby_score.get_width()
+
+    vertical_margin = 8
+
+    pascal_rect = pygame.Rect(50, 20 - vertical_margin, pascal_width + 10, pascal_score.get_height() + 2 * vertical_margin)
+    total_rect = pygame.Rect((WIDTH // 2 - total_width // 2) - 5, 20 - vertical_margin, total_width + 10, total_score.get_height() + 2 * vertical_margin)
+    ruby_rect = pygame.Rect(WIDTH - ruby_width - 50 - 5, 20 - vertical_margin, ruby_width + 10, ruby_score.get_height() + 2 * vertical_margin)
+
+    pygame.draw.rect(display, RED, pascal_rect)
+    pygame.draw.rect(display, LIGHT_GREEN, total_rect)
+    pygame.draw.rect(display, YELLOW, ruby_rect)
+
+    display.blit(pascal_score, (55, 25 - vertical_margin//2))
+    display.blit(total_score, (total_rect.x + 5, 25 - vertical_margin//2))
+    display.blit(ruby_score, (ruby_rect.x + 5, 25 - vertical_margin//2))
 
 def RegisterScore(pascal, ruby, json_file_handler):
     last_score_data = {
@@ -308,33 +376,36 @@ def IsGameOver(trees_chared_qtt, trees_qtt, gameplay_state):
         gameplay_state = "game-over"
     return gameplay_state
 
-def EndGame(pascal, ruby, json_file_handler):
+def EndGame(pascal, ruby, volume, end_game_audio, json_file_handler):
+    if volume > 0:
+        pygame.mixer.music.stop()
+        end_game_audio.play()
     RegisterScore(pascal, ruby, json_file_handler)
     pygame.time.delay(2000)
 
-def Gameplay(display, clock, font):
-    gameplay_state, keys_pressed, trees_qtt, trees_chared_qtt, trees_default_qtt, fire_cooldown, monkeys_qtt, monkey_cooldown, civilians, civilian_cooldown, json_file_handler = Start()
-    shelter, pascal, ruby, forest = CreateObjects(display, trees_qtt)
+def Gameplay(display, clock, font, volume):
+    gameplay_state, keys_pressed, trees_qtt, trees_chared_qtt, trees_default_qtt, fire_cooldown, monkeys_qtt, monkey_cooldown, civilians, civilian_cooldown, civilian_audio, lost_point_audio, end_game_audio, json_file_handler = Start(volume)
+    lake, shelter, water_pump, pascal, ruby, forest  = CreateObjects(display, trees_qtt, volume)
 
     while True:
         gameplay_state = IsGameOver(trees_chared_qtt, trees_qtt, gameplay_state)
         if gameplay_state == "game-over":
-            EndGame(pascal, ruby, json_file_handler)
-            return "game-over"
+            EndGame(pascal, ruby, volume, end_game_audio, json_file_handler)
+            return "game-over", False
         elif gameplay_state == "menu":
-            return "main-menu"
+            return "main-menu", False
         
         trees_default_qtt, monkeys_qtt, gameplay_state = HandleEvents(keys_pressed, pascal, ruby, trees_default_qtt, monkeys_qtt, gameplay_state)
         MoveFireFighters(keys_pressed, pascal, ruby)
-        CheckDistances(pascal, ruby, forest, shelter, civilians)
+        CheckDistances(pascal, ruby, forest, shelter, water_pump, civilians)
         trees_default_qtt = SetFireOnTree(forest, fire_cooldown, trees_qtt, trees_default_qtt)
         monkeys_qtt = SpawnMonkey(forest, monkey_cooldown, monkeys_qtt, trees_qtt, trees_default_qtt)
-        monkeys_qtt, trees_chared_qtt = CharTrees(forest, monkeys_qtt, pascal, ruby, trees_chared_qtt)
-        SpawnCivilian(civilian_cooldown, display, civilians)
-        CheckCiviliansPosition(civilians, pascal, ruby)
+        monkeys_qtt, trees_chared_qtt = CharTrees(forest, monkeys_qtt, pascal, ruby, trees_chared_qtt, lost_point_audio)
+        SpawnCivilian(civilian_cooldown, display, civilians, civilian_audio)
+        CheckCiviliansPosition(civilians, pascal, ruby, lost_point_audio)
 
         display.fill(GREEN)
-        DrawObjects(shelter, ruby, pascal, civilians, forest)
+        DrawObjects(lake, shelter, water_pump, ruby, pascal, civilians, forest)
         ShowScore(display, pascal, ruby, font)
 
         clock.tick(60)

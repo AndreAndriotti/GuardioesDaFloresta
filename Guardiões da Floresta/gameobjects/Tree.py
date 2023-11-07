@@ -4,23 +4,29 @@ from gameobjects.Monkey import Monkey
 
 class Tree:
 
-    def __init__(self, display, pos, size):
+    def __init__(self, display, pos, size, volume):
         self.display = display
         self.name = "tree"
         self.x = pos[0]
         self.y = pos[1]
         self.width = size[0]
         self.length = size[1]
-        self.char_cooldown = Cooldown(10)
         self.state = "default"
+        self.char_cooldown = Cooldown(10)
+
+        self.fire_audio = pygame.mixer.Sound("audios/SFX/gameobjects/Fire.mp3")
+        self.fire_audio.set_volume(volume)
+        self.monkey_audio = pygame.mixer.Sound("audios/SFX/gameobjects/Monkey.mp3")
+        self.monkey_audio.set_volume(volume)
+
         self.images = {
-                "default": pygame.image.load("images/Tree.png"),
-                "on-fire": pygame.image.load("images/Tree.png"),
-                "with-monkey": pygame.image.load("images/Tree.png"),
-                "on-fire-with-monkey": pygame.image.load("images/Tree.png"),
-                "charred": pygame.image.load("images/CharredTree.png")
+                "default": pygame.image.load("images/gameobjects/Tree.png"),
+                "on-fire": pygame.image.load("images/gameobjects/Tree.png"),
+                "with-monkey": pygame.image.load("images/gameobjects/Tree.png"),
+                "on-fire-with-monkey": pygame.image.load("images/gameobjects/Tree.png"),
+                "charred": pygame.image.load("images/gameobjects/CharredTree.png")
         }
-        self.fire_image = pygame.image.load("images/Fire.png")
+        self.fire_image = pygame.image.load("images/gameobjects/Fire.png")
         self.monkey = Monkey(display, self)
 
     def Draw(self):
@@ -36,6 +42,7 @@ class Tree:
 
     def SetFire(self):
         self.char_cooldown.Reset()
+        self.fire_audio.play()
         if self.state == "default":
             self.state = "on-fire"
         elif self.state == "with-monkey":
@@ -51,6 +58,7 @@ class Tree:
         self.state = "charred"
 
     def SpawnMonkey(self):
+        self.monkey_audio.play()
         self.state = "with-monkey"
 
     def RemoveMonkey(self):
