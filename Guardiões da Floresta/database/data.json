@@ -1,14 +1,14 @@
 {
     "ranking": [
         {
-            "high_score": 0,
-            "high_score_pascal": 0,
-            "high_score_ruby": 0
+            "high_score": 2510,
+            "high_score_pascal": 1205,
+            "high_score_ruby": 1305
         },
         {
-            "high_score": 0,
-            "high_score_pascal": 0,
-            "high_score_ruby": 0
+            "high_score": 1680,
+            "high_score_pascal": 705,
+            "high_score_ruby": 975
         },
         {
             "high_score": 0,
@@ -27,8 +27,8 @@
         }
     ],
     "last_score": {
-        "score": 0,
-        "score_pascal": 0,
-        "score_ruby": 0
+        "score": 2510,
+        "score_pascal": 1205,
+        "score_ruby": 1305
     }
 }

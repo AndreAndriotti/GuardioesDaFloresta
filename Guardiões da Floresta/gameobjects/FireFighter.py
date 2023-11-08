@@ -13,7 +13,7 @@ class FireFighter:
         self.length = size[1]
         self.speed = 4
         self.score = 0
-        self.water_tank_capacity = 6
+        self.water_tank_capacity = 5
         self.water_charges = self.water_tank_capacity
         self.state = "default"
         self.direction = "front"
@@ -23,7 +23,7 @@ class FireFighter:
         
         self.put_out_fire_cooldown = Cooldown(1.5)
         self.rescue_monkey_cooldown = Cooldown(1)
-        self.rescue_civilian_cooldown = Cooldown(0.5)
+        self.rescue_civilian_cooldown = Cooldown(0.2)
         self.refil_water_tank_cooldown = Cooldown(1)
         
         self.put_out_fire_audio = pygame.mixer.Sound("audios/SFX/firefighter/PutOutFire.wav")
@@ -168,7 +168,7 @@ class FireFighter:
     
     def DeliverMonkey(self):
         self.state = "default"
-        self.UpdateScore(20)
+        self.UpdateScore(30)
 
     def StartRescueCivilian(self):
         self.is_interacting = True
@@ -180,7 +180,7 @@ class FireFighter:
         self.is_interacting = False
         self.state = "default"
         civilian.state = "rescued"
-        self.UpdateScore(30)
+        self.UpdateScore(10)
 
     def StartRefilWaterTank(self):
         self.is_interacting = True

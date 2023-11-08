@@ -22,7 +22,7 @@ font = pygame.font.Font(None, 50)
 
 def main(game_state, volume, is_music_playing):
     while True:
-        if game_state == "intro-menu" or game_state == "main-menu":
+        if game_state == "intro-menu" or game_state == "main-menu": 
             game_state, volume, is_music_playing = Menu(display, clock, font, volume, is_music_playing, game_state)
         elif game_state == "gameplay":
             game_state, is_music_playing = Gameplay(display, clock, font, volume)

@@ -30,7 +30,7 @@ def Start(volume):
     trees_qtt = 10
     trees_chared_qtt = 0
     trees_default_qtt = trees_qtt
-    fire_cooldown = Cooldown(7)
+    fire_cooldown = Cooldown(3)
     fire_cooldown.Reset()
     monkeys_qtt = 0
     monkey_cooldown = Cooldown(10)
@@ -217,15 +217,17 @@ def SetFireOnTree(forest, fire_cooldown, trees_qtt, trees_default_qtt):
 
 def CharTrees(forest, monkeys_qtt, pascal, ruby, trees_chared_qtt, lost_point_audio):
     for tree in forest:
+        if tree.char_cooldown.cooldown_duration > tree.min_char_time:
+            tree.char_cooldown.cooldown_duration -= 0.001
         if tree.state == "on-fire" or tree.state == "on-fire-with-monkey":
             if tree.char_cooldown.IsReady():
                 tree.Char()
                 trees_chared_qtt += 1
                 if tree.state == "on-fire-with-monkey":
                     monkeys_qtt -= 1
-                    UpdateTotalScore(-30, pascal, ruby, lost_point_audio)
+                    UpdateTotalScore(-60, pascal, ruby, lost_point_audio)
                 else:
-                    UpdateTotalScore(-10, pascal, ruby, lost_point_audio)
+                    UpdateTotalScore(-30, pascal, ruby, lost_point_audio)
 
     return monkeys_qtt, trees_chared_qtt
 
@@ -337,7 +339,7 @@ def CheckCiviliansPosition(civilians, pascal, ruby, lost_point_audio):
             if civilian in ruby.nearby_civilians:
                 ruby.nearby_civilians.remove(civilian)
             civilians.remove(civilian)
-            UpdateTotalScore(-30, pascal, ruby, lost_point_audio)
+            UpdateTotalScore(-10, pascal, ruby, lost_point_audio)
 
 def UpdateTotalScore(points, pascal, ruby, lost_point_audio):
     if points < 0:

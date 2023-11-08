@@ -12,7 +12,8 @@ class Tree:
         self.width = size[0]
         self.length = size[1]
         self.state = "default"
-        self.char_cooldown = Cooldown(10)
+        self.char_cooldown = Cooldown(15)
+        self.min_char_time = 9
 
         self.fire_audio = pygame.mixer.Sound("audios/SFX/gameobjects/Fire.wav")
         self.fire_audio.set_volume(volume * 1.4)
